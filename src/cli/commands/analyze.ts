@@ -5,13 +5,16 @@ import { spinner, success, error } from "../ui.js";
 
 export default async function analyzeCommand(path: string): Promise<void> {
   const cwd = process.cwd();
-  const resolvedPath = resolve(cwd, path);
   const config = loadConfig(cwd);
+
+  // Override include globs with the provided path
+  const normalizedPath = path.replace(/\/$/, "");
+  config.include = [`${normalizedPath}/**/*.ts`, `${normalizedPath}/**/*.tsx`];
 
   const spin = spinner("Analyzing...");
 
   try {
-    const result = await analyze(resolvedPath, config);
+    const result = await analyze(cwd, config);
     spin.succeed("Analysis complete");
 
     const moduleCount = result.modules.length;

@@ -1,7 +1,7 @@
 import { Project } from "ts-morph";
 import { glob } from "glob";
-import { resolve, relative, dirname } from "node:path";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { resolve, relative } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import type {
   ClarityConfig,
   AnalysisResult,
@@ -12,39 +12,8 @@ import { analyzeModule } from "./module-analyzer.js";
 import { analyzeExport } from "./function-analyzer.js";
 import { computeComplexity } from "./complexity-detector.js";
 import { buildDependencyGraph } from "./dependency-mapper.js";
-
-/**
- * Resolve an import specifier to an absolute file path among known files.
- */
-function resolveImportToFile(
-  specifier: string,
-  fromFile: string,
-  knownFiles: Set<string>,
-): string | null {
-  if (!specifier.startsWith(".")) return null;
-
-  const dir = dirname(fromFile);
-  const base = resolve(dir, specifier);
-  const stripped = base.replace(/\.js$/, "");
-
-  const candidates = [
-    stripped + ".ts",
-    stripped + ".tsx",
-    stripped + "/index.ts",
-    stripped + "/index.tsx",
-    base + ".ts",
-    base + ".tsx",
-    base,
-  ];
-
-  for (const candidate of candidates) {
-    if (knownFiles.has(candidate)) {
-      return candidate;
-    }
-  }
-
-  return null;
-}
+import { resolveImportPath } from "./resolve-import.js";
+import { enrichWithGitHistory } from "../git/index.js";
 
 /**
  * Run the full analysis pipeline on a project.
@@ -54,6 +23,14 @@ export async function analyze(
   config: ClarityConfig,
 ): Promise<AnalysisResult> {
   const absoluteRoot = resolve(rootPath);
+
+  // Validate tsconfig exists
+  const tsconfigPath = resolve(absoluteRoot, config.tsconfig);
+  if (!existsSync(tsconfigPath)) {
+    throw new Error(
+      `tsconfig not found at ${tsconfigPath}. Either create one or set "tsconfig" in .clarityrc.json.`,
+    );
+  }
 
   // Discover files matching include/exclude globs
   const files = await glob(config.include, {
@@ -73,7 +50,6 @@ export async function analyze(
   }
 
   // Create ts-morph Project
-  const tsconfigPath = resolve(absoluteRoot, config.tsconfig);
   const project = new Project({
     tsConfigFilePath: tsconfigPath,
     skipAddingFilesFromTsConfig: true,
@@ -88,7 +64,7 @@ export async function analyze(
   const knownFilePaths = new Set(sourceFiles.map((sf) => sf.getFilePath()));
 
   // Phase 1: Analyze each module (exports, imports, complexity)
-  const modules: AnalyzedModule[] = [];
+  let modules: AnalyzedModule[] = [];
   const importDataForGraph: { filePath: string; imports: ModuleImport[] }[] = [];
 
   for (const sourceFile of sourceFiles) {
@@ -121,14 +97,13 @@ export async function analyze(
   const dependencyGraph = buildDependencyGraph(importDataForGraph);
 
   // Phase 3: Mark exports as internally used
-  // Build a lookup: for each file, collect what names are imported from it
   const usedByFile = new Map<string, Set<string>>();
 
   for (const mod of modules) {
     for (const imp of mod.imports) {
       if (imp.isExternal) continue;
 
-      const resolvedPath = resolveImportToFile(
+      const resolvedPath = resolveImportPath(
         imp.source,
         mod.filePath,
         knownFilePaths,
@@ -164,6 +139,9 @@ export async function analyze(
       }
     }
   }
+
+  // Phase 4: Enrich with git history
+  modules = await enrichWithGitHistory(absoluteRoot, modules, config);
 
   // Convert dependency graph to relative paths for the output
   const relativeDependencyGraph: Record<string, string[]> = {};

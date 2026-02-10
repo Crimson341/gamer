@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import pc from "picocolors";
 import ora, { type Ora } from "ora";
 
 export function spinner(text: string): Ora {
@@ -6,21 +6,21 @@ export function spinner(text: string): Ora {
 }
 
 export function success(message: string): void {
-  console.log(chalk.green("✔") + " " + message);
+  console.log(pc.green("✔") + " " + message);
 }
 
 export function warn(message: string): void {
-  console.log(chalk.yellow("⚠") + " " + message);
+  console.log(pc.yellow("⚠") + " " + message);
 }
 
 export function error(message: string): void {
-  console.log(chalk.red("✖") + " " + message);
+  console.log(pc.red("✖") + " " + message);
 }
 
 export function info(message: string): void {
-  console.log(chalk.blue("ℹ") + " " + message);
+  console.log(pc.blue("ℹ") + " " + message);
 }
 
 export function heading(text: string): void {
-  console.log("\n" + chalk.bold.underline(text) + "\n");
+  console.log("\n" + pc.bold(pc.underline(text)) + "\n");
 }

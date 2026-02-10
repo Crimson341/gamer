@@ -1,0 +1,10 @@
+src/
+tests/
+.clarity-cache/
+.clarityrc.json
+clarity-docs/
+.claude/
+tsconfig.json
+tsup.config.ts
+.prettierrc
+.eslintrc.json

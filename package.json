@@ -1,6 +1,6 @@
 {
   "name": "clarity-tool",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Analyze codebases and generate documentation focused on intent and reasoning",
   "type": "module",
   "bin": {
@@ -31,20 +31,22 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "glob": "^11.0.0",
     "ora": "^8.1.0",
+    "picocolors": "^1.1.1",
     "simple-git": "^3.27.0",
     "ts-morph": "^24.0.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/node": "^22.0.0",
     "eslint": "^9.0.0",
     "prettier": "^3.3.0",
     "tsup": "^8.3.0",
     "typescript": "^5.6.0",
+    "typescript-eslint": "^8.55.0",
     "vitest": "^2.1.0"
   },
   "engines": {

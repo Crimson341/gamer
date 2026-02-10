@@ -1,45 +1,9 @@
-import { resolve, dirname } from "node:path";
 import type { ModuleImport } from "../types/index.js";
+import { resolveImportPath } from "./resolve-import.js";
 
 interface FileImportData {
   filePath: string;
   imports: ModuleImport[];
-}
-
-/**
- * Resolve a relative import specifier to an absolute file path.
- * Tries common TypeScript extensions.
- */
-function resolveImportPath(
-  specifier: string,
-  fromFile: string,
-  knownFiles: Set<string>,
-): string | null {
-  if (!specifier.startsWith(".")) return null;
-
-  const dir = dirname(fromFile);
-  const base = resolve(dir, specifier);
-
-  // Strip .js extension that ESM imports use for .ts files
-  const stripped = base.replace(/\.js$/, "");
-
-  const candidates = [
-    stripped + ".ts",
-    stripped + ".tsx",
-    stripped + "/index.ts",
-    stripped + "/index.tsx",
-    base + ".ts",
-    base + ".tsx",
-    base,
-  ];
-
-  for (const candidate of candidates) {
-    if (knownFiles.has(candidate)) {
-      return candidate;
-    }
-  }
-
-  return null;
 }
 
 /**
